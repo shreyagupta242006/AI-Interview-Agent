@@ -1,9 +1,102 @@
+import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import axios from "axios";
+
 function CandidateSelection() {
+  const navigate = useNavigate();
+
+  const [candidates, setCandidates] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchCandidates();
+  }, []);
+
+  const fetchCandidates = async () => {
+    try {
+      const res = await axios.get("http://localhost:5000/api/candidates");
+      setCandidates(res.data);
+    } catch (err) {
+      console.log(err);
+      alert("Failed to load candidates");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSelect = (candidate) => {
+    localStorage.setItem(
+      "selectedCandidate",
+      JSON.stringify(candidate)
+    );
+
+    navigate("/interview");
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-[#020617] text-white flex justify-center items-center text-2xl">
+        Loading Candidates...
+      </div>
+    );
+  }
+
   return (
-    <div className="min-h-screen bg-slate-950 flex items-center justify-center text-white">
-      <h1 className="text-5xl font-bold text-cyan-400">
-        Candidate Selection
-      </h1>
+    <div className="min-h-screen bg-[#020617] text-white">
+
+      <div className="max-w-7xl mx-auto py-16 px-8">
+
+        <h1 className="text-5xl font-bold text-center">
+          Select Candidate
+        </h1>
+
+        <p className="text-center text-gray-400 mt-3">
+          Choose a profile to begin the AI interview
+        </p>
+
+        <div className="grid md:grid-cols-3 gap-8 mt-14">
+
+          {candidates.map((candidate) => (
+
+            <div
+              key={candidate.member.id}
+              className="bg-slate-900 border border-slate-700 rounded-3xl p-8 hover:border-cyan-400 transition"
+            >
+              <h2 className="text-2xl font-bold text-cyan-400">
+                {candidate.member.name}
+              </h2>
+
+              <p className="mt-4">
+                <strong>Role:</strong> {candidate.member.jobRole}
+              </p>
+
+              <p className="mt-2">
+                <strong>Experience:</strong>{" "}
+                {candidate.member.yearsExperience} Years
+              </p>
+
+              <p className="mt-2">
+                <strong>Status:</strong>{" "}
+                <span className="text-green-400">
+                  {candidate.member.status}
+                </span>
+              </p>
+
+              <button
+                onClick={() => handleSelect(candidate)}
+                className="mt-8 w-full py-3 rounded-xl bg-cyan-500 hover:bg-cyan-600"
+              >
+                Start Interview
+              </button>
+
+            </div>
+
+          ))}
+
+        </div>
+
+      </div>
+
     </div>
   );
 }
