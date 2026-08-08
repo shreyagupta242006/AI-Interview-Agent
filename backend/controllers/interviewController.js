@@ -1,89 +1,95 @@
 const {
-  generateInterviewResponse,
-} = require("../services/geminiService");
+  generateInterviewQuestion,
+  generateFinalFeedback,
+} = require("../services/interviewService");
 
 const handleInterview = async (req, res) => {
   try {
     const {
-      candidate = {},
+      candidate,
       history = [],
       curriculumDays = [],
       questionNumber = 1,
       candidateAnswer = "",
-      targetDay = 1,
+      targetDay,
       mode = "question",
     } = req.body;
 
-    console.log("Interview Request:", {
-      questionNumber,
-      targetDay,
-      mode,
-    });
-
-    const result = await generateInterviewResponse({
-      candidate,
-      history,
-      curriculumDays,
-      questionNumber,
-      candidateAnswer,
-      targetDay,
-      mode,
-    });
-
-    // =========================
+    // ============================================
     // FINAL FEEDBACK
-    // =========================
+    // ============================================
 
     if (mode === "feedback") {
-      let feedback;
-
-      try {
-        feedback = JSON.parse(
-          result
-            .replace(/```json/g, "")
-            .replace(/```/g, "")
-            .trim()
-        );
-      } catch (error) {
-        console.error(
-          "Feedback JSON parsing error:",
-          error
-        );
-
-        feedback = {
-          overallScore: 0,
-          summary: result,
-          strengths: [],
-          weaknesses: [],
-          curriculumPerformance: [],
-          recommendations: [],
-          finalVerdict: "",
-        };
-      }
+      const feedback = await generateFinalFeedback({
+        candidate,
+        history,
+        curriculumDays,
+      });
 
       return res.json({
         success: true,
+        question: feedback,
         feedback,
+        done: true,
       });
     }
 
-    // =========================
-    // NEXT QUESTION
-    // =========================
+    // ============================================
+    // STOP AFTER 8 QUESTIONS
+    // ============================================
+
+    if (Number(questionNumber) > 8) {
+      const feedback = await generateFinalFeedback({
+        candidate,
+        history,
+        curriculumDays,
+      });
+
+      return res.json({
+        success: true,
+        question: feedback,
+        feedback,
+        done: true,
+      });
+    }
+
+    // ============================================
+    // CURRICULUM DAY
+    // ============================================
+
+    const currentDay =
+      targetDay ||
+      Math.floor((Number(questionNumber) - 1) / 2) + 1;
+
+    // ============================================
+    // GENERATE QUESTION
+    // ============================================
+
+    const question = await generateInterviewQuestion({
+      candidate,
+      history,
+      curriculumDays,
+      questionNumber: Number(questionNumber),
+      candidateAnswer,
+      targetDay: currentDay,
+    });
 
     return res.json({
       success: true,
-      question: result,
+      question,
+      reply: question,
+      done: false,
+      questionNumber: Number(questionNumber),
+      curriculumDay: currentDay,
     });
   } catch (error) {
-    console.error(
-      "Interview generation error:",
-      error
-    );
+    console.error("Interview generation error:", error);
 
     return res.status(500).json({
       success: false,
-      message: error.message,
+      message:
+        error.message ||
+        "Unable to generate interview question",
     });
   }
 };
