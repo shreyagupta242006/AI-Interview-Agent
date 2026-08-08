@@ -22,3 +22,9 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+# ZIP files
+*.zip
+
+# Duplicate/nested frontend project
+frontend/AI-Interview-Agent/
+AI-Interview-Agent/

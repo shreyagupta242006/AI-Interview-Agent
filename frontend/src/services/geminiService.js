@@ -1,41 +1,73 @@
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import axios from "axios";
 
-const genAI = new GoogleGenerativeAI(
-  import.meta.env.VITE_GEMINI_API_KEY
-);
+const API_URL =
+  "https://ai-interview-backend-rb9p.onrender.com/api/interview";
 
-const model = genAI.getGenerativeModel({
-  model: "gemini-2.5-flash",
-});
+// =========================
+// GENERATE NEXT QUESTION
+// =========================
 
-export const generateQuestion = async (candidate) => {
+export const generateQuestion = async ({
+  candidate,
+  history = [],
+  curriculumDays = [],
+  questionNumber = 1,
+  candidateAnswer = "",
+  targetDay = 1,
+}) => {
   try {
+    const response = await axios.post(API_URL, {
+      candidate,
+      history,
+      curriculumDays,
+      questionNumber,
+      candidateAnswer,
+      targetDay,
+      mode: "question",
+    });
 
-    const prompt = `
-You are an experienced technical interviewer.
+    if (!response.data?.success) {
+      throw new Error(
+        response.data?.message || "Failed to generate question"
+      );
+    }
 
-Candidate Details:
-Name: ${candidate?.member?.name}
-Role: ${candidate?.member?.jobRole}
+    return response.data.question;
+  } catch (error) {
+    console.error("Generate question error:", error);
+    throw error;
+  }
+};
 
-Generate ONE interview question.
+// =========================
+// GENERATE FINAL FEEDBACK
+// =========================
 
-Rules:
-- Question must match the candidate role.
-- Medium difficulty.
-- Ask only ONE question.
-- Return only the question.
-`;
+export const generateFeedback = async ({
+  candidate,
+  history = [],
+  curriculumDays = [],
+}) => {
+  try {
+    const response = await axios.post(API_URL, {
+      candidate,
+      history,
+      curriculumDays,
+      questionNumber: 8,
+      candidateAnswer: "",
+      targetDay: 4,
+      mode: "feedback",
+    });
 
-    const result = await model.generateContent(prompt);
+    if (!response.data?.success) {
+      throw new Error(
+        response.data?.message || "Failed to generate feedback"
+      );
+    }
 
-    return result.response.text();
-
-  } catch (err) {
-
-    console.log(err);
-
-    return "Tell me about yourself.";
-
+    return response.data.feedback;
+  } catch (error) {
+    console.error("Generate feedback error:", error);
+    throw error;
   }
 };
