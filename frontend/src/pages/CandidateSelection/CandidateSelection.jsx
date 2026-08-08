@@ -15,7 +15,7 @@ function CandidateSelection() {
   const fetchCandidates = async () => {
     try {
       const res = await axios.get(
-        "http://localhost:5000/api/candidates"
+        "https://ai-interview-backend-rb9p.onrender.com/api/candidates"
       );
 
       console.log("Candidates:", res.data);
