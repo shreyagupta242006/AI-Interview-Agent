@@ -14,10 +14,15 @@ function CandidateSelection() {
 
   const fetchCandidates = async () => {
     try {
-      const res = await axios.get("http://localhost:5000/api/candidates");
+      const res = await axios.get(
+        "http://localhost:5000/api/candidates"
+      );
+
+      console.log("Candidates:", res.data);
+
       setCandidates(res.data);
     } catch (err) {
-      console.log(err);
+      console.error("Failed to load candidates:", err);
       alert("Failed to load candidates");
     } finally {
       setLoading(false);
@@ -35,15 +40,16 @@ function CandidateSelection() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#020617] text-white flex justify-center items-center text-2xl">
-        Loading Candidates...
+      <div className="min-h-screen bg-[#020617] text-white flex items-center justify-center">
+        <h2 className="text-2xl text-cyan-400">
+          Loading Candidates...
+        </h2>
       </div>
     );
   }
 
   return (
     <div className="min-h-screen bg-[#020617] text-white">
-
       <div className="max-w-7xl mx-auto py-16 px-8">
 
         <h1 className="text-5xl font-bold text-center">
@@ -57,17 +63,18 @@ function CandidateSelection() {
         <div className="grid md:grid-cols-3 gap-8 mt-14">
 
           {candidates.map((candidate) => (
-
             <div
               key={candidate.member.id}
               className="bg-slate-900 border border-slate-700 rounded-3xl p-8 hover:border-cyan-400 transition"
             >
+
               <h2 className="text-2xl font-bold text-cyan-400">
                 {candidate.member.name}
               </h2>
 
               <p className="mt-4">
-                <strong>Role:</strong> {candidate.member.jobRole}
+                <strong>Role:</strong>{" "}
+                {candidate.member.jobRole}
               </p>
 
               <p className="mt-2">
@@ -84,19 +91,17 @@ function CandidateSelection() {
 
               <button
                 onClick={() => handleSelect(candidate)}
-                className="mt-8 w-full py-3 rounded-xl bg-cyan-500 hover:bg-cyan-600"
+                className="mt-8 w-full py-3 rounded-xl bg-cyan-500 hover:bg-cyan-600 text-black font-bold"
               >
                 Start Interview
               </button>
 
             </div>
-
           ))}
 
         </div>
 
       </div>
-
     </div>
   );
 }

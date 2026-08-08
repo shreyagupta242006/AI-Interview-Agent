@@ -1,327 +1,366 @@
 import { useEffect, useRef, useState } from "react";
-
-import TopBar from "../../components/interview/TopBar";
-import AIAvatar from "../../components/interview/AIAvatar";
-import CameraFeed from "../../components/interview/CameraFeed";
-import SpeakingPanel from "../../components/interview/SpeakingPanel";
-import ListeningPanel from "../../components/interview/ListeningPanel";
+import { generateQuestion } from "../../services/geminiService";
 
 function Interview() {
-
   const candidate = JSON.parse(
-    localStorage.getItem("selectedCandidate")
+    localStorage.getItem("selectedCandidate") || "null"
   );
 
   const videoRef = useRef(null);
   const recognitionRef = useRef(null);
 
-  const [interviewStarted, setInterviewStarted] = useState(false);
-  const [cameraReady, setCameraReady] = useState(false);
-  const [micReady, setMicReady] = useState(false);
-
   const [question, setQuestion] = useState(
     "Tell me about yourself."
   );
 
-  const [questionNumber] = useState(1);
+  const [questionNumber, setQuestionNumber] = useState(1);
   const [timeLeft, setTimeLeft] = useState(1500);
 
-  const [transcript, setTranscript] = useState("");
+  const [cameraReady, setCameraReady] = useState(false);
+  const [micReady, setMicReady] = useState(false);
+
+  const [aiSpeaking, setAiSpeaking] = useState(false);
   const [listening, setListening] = useState(false);
+  const [transcript, setTranscript] = useState("");
+
+  // -------------------------
+  // CAMERA + MIC
+  // -------------------------
 
   useEffect(() => {
+    let stream;
 
-    checkDevices();
+    const startCamera = async () => {
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: true,
+          audio: true,
+        });
 
-    setupSpeechRecognition();
+        setCameraReady(true);
+        setMicReady(true);
 
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream;
+        }
+      } catch (error) {
+        console.error("Camera/Mic error:", error);
+      }
+    };
+
+    startCamera();
+
+    return () => {
+      if (stream) {
+        stream.getTracks().forEach((track) => {
+          track.stop();
+        });
+      }
+    };
   }, []);
 
+  // -------------------------
+  // SPEECH RECOGNITION
+  // -------------------------
+
   useEffect(() => {
+    const SpeechRecognition =
+      window.SpeechRecognition ||
+      window.webkitSpeechRecognition;
 
-    if (!interviewStarted) return;
+    if (!SpeechRecognition) {
+      console.log("Speech Recognition not supported");
+      return;
+    }
 
+    const recognition = new SpeechRecognition();
+
+    recognition.continuous = true;
+    recognition.interimResults = true;
+    recognition.lang = "en-US";
+
+    recognition.onstart = () => {
+      setListening(true);
+    };
+
+    recognition.onresult = (event) => {
+      let text = "";
+
+      for (
+        let i = event.resultIndex;
+        i < event.results.length;
+        i++
+      ) {
+        text += event.results[i][0].transcript;
+      }
+
+      setTranscript(text);
+    };
+
+    recognition.onend = () => {
+      setListening(false);
+    };
+
+    recognition.onerror = (event) => {
+      console.log("Recognition error:", event.error);
+      setListening(false);
+    };
+
+    recognitionRef.current = recognition;
+
+    return () => {
+      try {
+        recognition.stop();
+      } catch (error) {}
+
+      window.speechSynthesis.cancel();
+    };
+  }, []);
+
+  // -------------------------
+  // TIMER
+  // -------------------------
+
+  useEffect(() => {
     const timer = setInterval(() => {
-
-      setTimeLeft((prev) => {
-
-        if (prev <= 0) {
-
+      setTimeLeft((previous) => {
+        if (previous <= 0) {
           clearInterval(timer);
-
           return 0;
-
         }
 
-        return prev - 1;
-
+        return previous - 1;
       });
-
     }, 1000);
 
     return () => clearInterval(timer);
+  }, []);
 
-  }, [interviewStarted]);
-
-  const checkDevices = async () => {
-
-    try {
-
-      const stream =
-        await navigator.mediaDevices.getUserMedia({
-
-          video: true,
-
-          audio: true,
-
-        });
-
-      if (videoRef.current) {
-
-        videoRef.current.srcObject = stream;
-
-      }
-
-      setCameraReady(true);
-
-      setMicReady(true);
-
-    } catch (err) {
-
-      console.log(err);
-
-      alert("Please allow Camera & Microphone");
-
-    }
-
-  };
-
-  const setupSpeechRecognition = () => {
-
-    if (
-
-      "webkitSpeechRecognition" in window ||
-
-      "SpeechRecognition" in window
-
-    ) {
-
-      const SpeechRecognition =
-        window.SpeechRecognition ||
-        window.webkitSpeechRecognition;
-
-      const recognition =
-        new SpeechRecognition();
-
-      recognition.continuous = true;
-      recognition.interimResults = true;
-      recognition.lang = "en-US";
-
-      recognition.onresult = (event) => {
-
-        let text = "";
-
-        for (
-
-          let i = event.resultIndex;
-
-          i < event.results.length;
-
-          i++
-
-        ) {
-
-          text +=
-            event.results[i][0].transcript;
-
-        }
-
-        setTranscript(text);
-
-      };
-
-      recognition.onend = () => {
-
-        setListening(false);
-
-      };
-
-      recognitionRef.current = recognition;
-
-    }
-
-  };
-
-  return (
-    <div>
-      {/* Interview page content goes here */}
-    </div>
-  );
-
-
-  const startRecording = () => {
-
-    if (recognitionRef.current) {
-
-      recognitionRef.current.start();
-
-      setListening(true);
-
-    }
-
-  };
-
-  const stopRecording = () => {
-
-    if (recognitionRef.current) {
-
-      recognitionRef.current.stop();
-
-      setListening(false);
-
-    }
-
-  };
+  // -------------------------
+  // FORMAT TIME
+  // -------------------------
 
   const formatTime = () => {
+    const minutes = Math.floor(timeLeft / 60);
+    const seconds = timeLeft % 60;
 
-    const min = Math.floor(timeLeft / 60);
-
-    const sec = timeLeft % 60;
-
-    return `${min}:${sec.toString().padStart(2, "0")}`;
-
+    return `${minutes}:${seconds
+      .toString()
+      .padStart(2, "0")}`;
   };
 
-  if (!interviewStarted) {
+  // -------------------------
+  // AI VOICE
+  // -------------------------
 
-    return (
+  const speakQuestion = (text) => {
+    if (!text) return;
 
-      <div className="min-h-screen bg-[#020617] text-white flex items-center justify-center p-10">
+    window.speechSynthesis.cancel();
 
-        <div className="w-full max-w-7xl bg-[#0E1528] rounded-3xl border border-slate-700 p-10">
+    const speech =
+      new SpeechSynthesisUtterance(text);
 
-          <h1 className="text-5xl font-bold text-violet-400">
+    speech.lang = "en-US";
+    speech.rate = 0.95;
+    speech.pitch = 1;
+    speech.volume = 1;
 
-            AI Interview Lobby
+    speech.onstart = () => {
+      setAiSpeaking(true);
+    };
 
-          </h1>
+    speech.onend = () => {
+      setAiSpeaking(false);
 
-          <p className="text-gray-400 mt-3 text-lg">
+      setTimeout(() => {
+        startRecording();
+      }, 500);
+    };
 
-            Complete your system check before starting your interview.
+    speech.onerror = () => {
+      setAiSpeaking(false);
+    };
 
-          </p>
+    window.speechSynthesis.speak(speech);
+  };
 
-          <div className="grid md:grid-cols-2 gap-10 mt-10">
+  // -------------------------
+  // LOAD GEMINI QUESTION
+  // -------------------------
 
-            <div>
+  const loadQuestion = async () => {
+    try {
+      const generatedQuestion =
+        await generateQuestion(candidate);
 
-              <video
+      if (generatedQuestion) {
+        setQuestion(generatedQuestion);
 
-                ref={videoRef}
+        speakQuestion(generatedQuestion);
+      }
+    } catch (error) {
+      console.error("Gemini error:", error);
 
-                autoPlay
+      speakQuestion(
+        "Tell me about yourself."
+      );
+    }
+  };
 
-                muted
+  // -------------------------
+  // START RECORDING
+  // -------------------------
 
-                playsInline
+  const startRecording = () => {
+    if (!recognitionRef.current) return;
 
-                className="rounded-3xl w-full h-[420px] object-cover border border-slate-700"
+    try {
+      recognitionRef.current.start();
+    } catch (error) {
+      console.log("Already recording");
+    }
+  };
 
-              />
+  // -------------------------
+  // STOP RECORDING
+  // -------------------------
+
+  const stopRecording = () => {
+    if (!recognitionRef.current) return;
+
+    try {
+      recognitionRef.current.stop();
+    } catch (error) {}
+
+    setListening(false);
+  };
+
+  // -------------------------
+  // START AI INTERVIEW
+  // -------------------------
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      speakQuestion(
+        "Good Morning " +
+          (candidate?.member?.name || "Candidate") +
+          ". Welcome to your AI Interview. Tell me about yourself."
+      );
+    }, 700);
+
+    return () => clearTimeout(timer);
+  }, []);
+
+  return (
+    <div className="min-h-screen bg-[#020617] text-white">
+
+      {/* ================= TOP BAR ================= */}
+
+      <div className="h-[90px] border-b border-slate-800 flex items-center justify-between px-10">
+
+        <div className="text-3xl font-bold">
+          <span className="text-violet-500">
+            ✦
+          </span>{" "}
+          AI Interview
+        </div>
+
+        <div className="border border-violet-600 rounded-full px-8 py-3 text-xl font-bold">
+          Question {questionNumber} / 8
+        </div>
+
+        <div className="flex items-center gap-5">
+
+          <div className="border border-slate-700 rounded-full px-7 py-3 text-xl font-bold">
+            🕐 {formatTime()}
+          </div>
+
+          <button className="bg-red-600 hover:bg-red-700 px-7 py-4 rounded-xl font-bold">
+            ☎ End Interview
+          </button>
+
+        </div>
+
+      </div>
+
+      {/* ================= MAIN ================= */}
+
+      <div className="p-7">
+
+        {/* AI + CAMERA */}
+
+        <div className="grid lg:grid-cols-2 gap-5">
+
+          {/* ================= AI PANEL ================= */}
+
+          <div className="relative h-[460px] rounded-3xl overflow-hidden border border-violet-700 bg-gradient-to-b from-[#11183c] to-[#070d20]">
+
+            {/* Label */}
+
+            <div className="absolute top-5 left-5 z-20 bg-[#20264c] px-5 py-4 rounded-2xl text-xl font-semibold">
+
+              🤖 AI Interviewer
 
             </div>
 
-            <div>
+            {/* AI */}
 
-              <h2 className="text-4xl font-bold">
+            <div className="absolute inset-0 flex items-center justify-center">
 
-                {candidate?.member?.name || "Candidate"}
-
-              </h2>
-
-              <p className="text-xl text-gray-400 mt-3">
-
-                {candidate?.member?.jobRole || "Software Developer"}
-
-              </p>
-
-              <div className="mt-10 space-y-6">
-
-                <div className="flex justify-between">
-
-                  <span>📹 Camera</span>
-
-                  <span className="text-green-400">
-
-                    {cameraReady ? "Ready" : "Not Ready"}
-
-                  </span>
-
-                </div>
-
-                <div className="flex justify-between">
-
-                  <span>🎤 Microphone</span>
-
-                  <span className="text-green-400">
-
-                    {micReady ? "Ready" : "Not Ready"}
-
-                  </span>
-
-                </div>
-
-                <div className="flex justify-between">
-
-                  <span>🌐 Internet</span>
-
-                  <span className="text-green-400">
-
-                    {navigator.onLine ? "Connected" : "Offline"}
-
-                  </span>
-
-                </div>
-
-              </div>
-
-              <div className="mt-10">
-
-                <h3 className="text-2xl font-bold">
-
-                  Interview Rules
-
-                </h3>
-
-                <ul className="mt-5 space-y-3 text-gray-300">
-
-                  <li>• Camera must remain ON</li>
-
-                  <li>• Microphone must remain ON</li>
-
-                  <li>• Speak only in English</li>
-
-                  <li>• Do not refresh the browser</li>
-
-                  <li>• Keep your face visible</li>
-
-                </ul>
-
-              </div>
-
-              <button
-
-                onClick={() => setInterviewStarted(true)}
-
-                className="mt-10 w-full py-5 rounded-2xl bg-violet-600 hover:bg-violet-700 text-xl font-bold"
-
+              <div
+                className={`w-[270px] h-[270px] rounded-full flex items-center justify-center text-[130px] transition-all ${
+                  aiSpeaking
+                    ? "bg-cyan-400/20 animate-pulse"
+                    : "bg-violet-500/10"
+                }`}
               >
+                🤖
+              </div>
 
-                Start Live Interview
+            </div>
 
-              </button>
+            {/* Voice Wave */}
+
+            {aiSpeaking && (
+              <div className="absolute bottom-7 left-0 right-0 flex justify-center gap-2">
+
+                {[20, 35, 50, 30, 60, 40, 25, 55, 35, 45].map(
+                  (height, index) => (
+                    <div
+                      key={index}
+                      className="w-2 bg-violet-500 rounded-full animate-pulse"
+                      style={{
+                        height: `${height}px`,
+                      }}
+                    />
+                  )
+                )}
+
+              </div>
+            )}
+
+          </div>
+
+          {/* ================= CAMERA ================= */}
+
+          <div className="relative h-[460px] rounded-3xl overflow-hidden border border-slate-700 bg-black">
+
+            <video
+              ref={videoRef}
+              autoPlay
+              muted
+              playsInline
+              className="w-full h-full object-cover"
+            />
+
+            <div className="absolute top-5 left-5 bg-black/60 px-5 py-4 rounded-2xl text-xl">
+
+              📹 Your Camera{" "}
+
+              <span className="text-green-400">
+                ●
+              </span>
 
             </div>
 
@@ -329,121 +368,111 @@ function Interview() {
 
         </div>
 
-      </div>
+        {/* ================= SPEAKING ================= */}
 
-    );
+        <div className="mt-6 rounded-3xl border border-violet-700 bg-gradient-to-r from-[#0c1429] to-[#080f20] p-8">
 
-  }
-    return (
+          <div className="flex items-center gap-4">
 
-    <div className="min-h-screen bg-[#020617] text-white">
+            <div className="w-12 h-12 rounded-full bg-violet-700/30 flex items-center justify-center text-2xl">
+              🔊
+            </div>
 
-      <TopBar
-        questionNumber={questionNumber}
-        totalQuestions={8}
-        time={formatTime()}
-      />
+            <h2 className="text-2xl font-bold text-violet-500">
+              {aiSpeaking
+                ? "AI Speaking..."
+                : "AI Interviewer"}
+            </h2>
 
-      <div className="max-w-7xl mx-auto px-8 py-8">
+          </div>
 
-        {/* Camera + AI */}
+          <div className="ml-16 mt-5 space-y-4 text-2xl">
 
-        <div className="grid md:grid-cols-2 gap-8">
+            <p>
+              Good Morning{" "}
+              {candidate?.member?.name ||
+                "Candidate"}
+              .
+            </p>
 
-          <AIAvatar />
+            <p>
+              Welcome to your AI Interview.
+            </p>
 
-          <CameraFeed />
+            <p className="font-semibold">
+              {question}
+            </p>
+
+          </div>
 
         </div>
 
-        {/* AI Speaking */}
+        {/* ================= LISTENING ================= */}
 
-        <SpeakingPanel
-          question={question}
-        />
+        <div className="mt-6 rounded-3xl border border-emerald-700 bg-[#031b1b] p-7">
 
-        {/* Transcript */}
+          <div className="flex items-center gap-6">
 
-        <ListeningPanel
-          transcript={transcript}
-        />
+            <div className="w-24 h-24 rounded-full border-2 border-emerald-400 flex items-center justify-center text-5xl">
+              🎤
+            </div>
 
-        {/* Controls */}
+            <div>
 
-        <div className="mt-8 flex justify-center gap-6">
+              <h2 className="text-2xl font-bold text-emerald-400">
+                {listening
+                  ? "Listening..."
+                  : "Ready"}
+              </h2>
+
+              <p className="text-xl text-gray-300 mt-2">
+                {listening
+                  ? "Speak clearly. We are listening."
+                  : "Waiting for your answer."}
+              </p>
+
+            </div>
+
+          </div>
+
+          {transcript && (
+            <div className="mt-5 ml-28 text-gray-300 text-lg">
+              {transcript}
+            </div>
+          )}
+
+        </div>
+
+        {/* ================= MIC BUTTON ================= */}
+
+        <div className="flex justify-center mt-6">
 
           {!listening ? (
 
             <button
-
               onClick={startRecording}
-
-              className="
-              bg-green-500
-              hover:bg-green-600
-              px-8
-              py-4
-              rounded-2xl
-              text-xl
-              font-semibold
-              "
-
+              className="px-10 py-4 rounded-2xl bg-emerald-500 hover:bg-emerald-600 text-black font-bold text-lg"
             >
-
               🎤 Start Answer
-
             </button>
 
           ) : (
 
             <button
-
               onClick={stopRecording}
-
-              className="
-              bg-red-500
-              hover:bg-red-600
-              px-8
-              py-4
-              rounded-2xl
-              text-xl
-              font-semibold
-              "
-
+              className="px-10 py-4 rounded-2xl bg-red-500 hover:bg-red-600 font-bold text-lg"
             >
-
               ⏹ Stop Answer
-
             </button>
 
           )}
-
-          <button
-
-            className="
-            bg-violet-600
-            hover:bg-violet-700
-            px-8
-            py-4
-            rounded-2xl
-            text-xl
-            font-semibold
-            "
-
-          >
-
-            Next Question →
-
-          </button>
 
         </div>
 
       </div>
 
     </div>
-
   );
-
 }
 
 export default Interview;

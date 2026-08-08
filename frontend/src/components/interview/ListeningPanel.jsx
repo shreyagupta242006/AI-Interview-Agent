@@ -1,68 +1,35 @@
-function ListeningPanel({ transcript }) {
-
+function ListeningPanel({ transcript, listening }) {
   return (
+    <div className="mt-8 bg-[#0E1528] border border-slate-700 rounded-3xl p-8">
 
-    <div
-      className="
-      mt-6
-      bg-gradient-to-r
-      from-[#05261E]
-      to-[#081B19]
-      rounded-3xl
-      border
-      border-green-700
-      p-8
-      flex
-      items-center
-      gap-8
-    "
-    >
+      <div className="flex justify-between items-center">
 
-      <div
-        className="
-        w-24
-        h-24
-        rounded-full
-        border-4
-        border-green-400
-        flex
-        items-center
-        justify-center
-        text-5xl
-        animate-pulse
-        "
-      >
+        <h2 className="text-2xl font-bold text-white">
+          Your Answer
+        </h2>
 
-        🎤
+        <span
+          className={`px-4 py-2 rounded-full text-sm font-semibold ${
+            listening
+              ? "bg-green-500 text-white"
+              : "bg-slate-700 text-slate-300"
+          }`}
+        >
+          {listening ? "Listening..." : "Idle"}
+        </span>
 
       </div>
 
-      <div>
+      <div className="mt-6 min-h-[180px] rounded-2xl bg-[#09101E] p-6">
 
-        <h2
-          className="
-          text-4xl
-          font-bold
-          text-green-400
-          "
-        >
-
-          Listening...
-
-        </h2>
-
-        <p className="text-2xl mt-4 text-gray-300">
-
-          {transcript || "Speak clearly. We are listening..."}
-
+        <p className="text-slate-300 text-lg leading-8 whitespace-pre-wrap">
+          {transcript || "Start speaking..."}
         </p>
 
       </div>
 
     </div>
-
   );
-
 }
 
 export default ListeningPanel;

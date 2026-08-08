@@ -10,32 +10,24 @@ function App() {
   return (
     <BrowserRouter>
       <Routes>
-
-        {/* Login Page */}
         <Route path="/" element={<Login />} />
-        <Route path="/login" element={<Login />} />
 
-        {/* Landing Page */}
         <Route path="/home" element={<Landing />} />
 
-        {/* Candidate Selection */}
         <Route
           path="/candidate-selection"
           element={<CandidateSelection />}
         />
 
-        {/* Interview */}
         <Route
           path="/interview"
           element={<Interview />}
         />
 
-        {/* Report */}
         <Route
           path="/report"
           element={<Report />}
         />
-
       </Routes>
     </BrowserRouter>
   );

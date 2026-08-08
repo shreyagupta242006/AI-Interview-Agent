@@ -1,111 +1,23 @@
-import { useEffect, useRef } from "react";
-
-function CameraFeed() {
-
-  const videoRef = useRef(null);
-
-  useEffect(() => {
-
-    async function startCamera() {
-
-      try {
-
-        const stream =
-          await navigator.mediaDevices.getUserMedia({
-
-            video: true,
-            audio: false,
-
-          });
-
-        if (videoRef.current) {
-
-          videoRef.current.srcObject = stream;
-
-        }
-
-      }
-
-      catch (err) {
-
-        console.log(err);
-
-      }
-
-    }
-
-    startCamera();
-
-  }, []);
-
+function CameraFeed({ videoRef }) {
   return (
-
-    <div
-      className="
-      bg-[#0E1528]
-      rounded-3xl
-      border
-      border-[#272E45]
-      h-[460px]
-      overflow-hidden
-      relative
-    "
-    >
-
-      <div
-        className="
-        absolute
-        left-5
-        top-5
-        z-20
-        bg-[#1B2238]
-        rounded-xl
-        px-5
-        py-3
-        flex
-        items-center
-        gap-3
-        "
-      >
-
-        📹
-
-        <span className="text-xl">
-
-          Your Camera
-
-        </span>
-
-        <span className="text-green-400">
-
-          ●
-
-        </span>
-
-      </div>
+    <div className="relative h-[460px] rounded-3xl overflow-hidden border border-slate-700 bg-black">
 
       <video
-
         ref={videoRef}
-
         autoPlay
-
         muted
-
         playsInline
-
-        className="
-        w-full
-        h-full
-        object-cover
-        "
-
+        className="w-full h-full object-cover"
       />
 
+      <div className="absolute top-5 left-5 bg-black/60 backdrop-blur-md px-4 py-2 rounded-xl">
+        <p className="text-white font-semibold">
+          📹 You
+        </p>
+      </div>
+
     </div>
-
   );
-
 }
 
 export default CameraFeed;

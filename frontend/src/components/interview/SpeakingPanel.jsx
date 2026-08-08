@@ -1,92 +1,29 @@
-function SpeakingPanel({ question }) {
-
+function SpeakingPanel({ question, aiSpeaking }) {
   return (
+    <div className="mt-8 bg-[#0E1528] border border-slate-700 rounded-3xl p-8">
 
-    <div
-      className="
-      mt-6
-      bg-[#0E1528]
-      rounded-3xl
-      border
-      border-violet-700
-      p-10
-      flex
-      justify-between
-      items-center
-    "
-    >
+      <div className="flex items-center gap-3">
 
-      <div>
+        <div
+          className={`w-4 h-4 rounded-full ${
+            aiSpeaking
+              ? "bg-cyan-400 animate-pulse"
+              : "bg-slate-500"
+          }`}
+        />
 
-        <div className="flex items-center gap-4">
-
-          <div
-            className="
-            w-14
-            h-14
-            rounded-full
-            bg-violet-600
-            flex
-            items-center
-            justify-center
-            text-3xl
-            "
-          >
-
-            🔊
-
-          </div>
-
-          <h2
-            className="
-            text-4xl
-            font-bold
-            text-violet-400
-            "
-          >
-
-            AI Speaking...
-
-          </h2>
-
-        </div>
-
-        <div className="mt-10 space-y-5">
-
-          <h2 className="text-5xl font-bold">
-
-            Good Morning Shreya.
-
-          </h2>
-
-          <h3 className="text-4xl text-gray-300">
-
-            Welcome to your AI Interview.
-
-          </h3>
-
-          <h1 className="text-5xl font-semibold">
-
-            {question}
-
-          </h1>
-
-        </div>
+        <h2 className="text-2xl font-bold text-white">
+          AI Interviewer
+        </h2>
 
       </div>
 
-      <img
-
-        src="/wave.png"
-
-        className="w-[340px]"
-
-      />
+      <p className="text-slate-300 text-xl leading-9 mt-6">
+        {question || "Generating question..."}
+      </p>
 
     </div>
-
   );
-
 }
 
 export default SpeakingPanel;
