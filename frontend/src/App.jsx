@@ -10,10 +10,12 @@ function App() {
   return (
     <BrowserRouter>
       <Routes>
-        {/* First Page */}
-        <Route path="/" element={<Login />} />
 
-        {/* Dashboard */}
+        {/* Login Page */}
+        <Route path="/" element={<Login />} />
+        <Route path="/login" element={<Login />} />
+
+        {/* Landing Page */}
         <Route path="/home" element={<Landing />} />
 
         {/* Candidate Selection */}
@@ -33,6 +35,7 @@ function App() {
           path="/report"
           element={<Report />}
         />
+
       </Routes>
     </BrowserRouter>
   );
